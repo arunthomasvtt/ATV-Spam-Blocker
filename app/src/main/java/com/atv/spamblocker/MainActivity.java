@@ -28,7 +28,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -44,11 +46,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQ_PERMS = 1;
     private static final int REQ_ROLE = 2;
-
-    private static final int COLOR_SAFE = 0xFF00E5A0;
-    private static final int COLOR_WARN = 0xFFFFCC00;
-    private static final int COLOR_SPAM = 0xFFFF3B5C;
-    private static final int COLOR_MUTED = 0xFF6B6B8A;
 
     private final ExecutorService exec = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -70,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyThemePref();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         db = new Db(this);
@@ -97,10 +95,12 @@ public class MainActivity extends AppCompatActivity {
             confirmDelete(seriesAdapter.getItem(pos));
             return true;
         });
+        listSeries.setOnItemClickListener((parent, view, pos, id) ->
+                showSeriesActions(seriesAdapter.getItem(pos)));
         listCalls.setOnItemClickListener((parent, view, pos, id) ->
                 callRowClicked(callLogAdapter.getItem(pos)));
 
-        findViewById(R.id.btnAddSeries).setOnClickListener(v -> showAddSeriesDialog());
+        findViewById(R.id.btnAddSeries).setOnClickListener(v -> showSeriesDialog(null));
         findViewById(R.id.btnMenu).setOnClickListener(this::showOverflow);
         btnBanner.setOnClickListener(v -> bannerAction());
 
@@ -128,6 +128,16 @@ public class MainActivity extends AppCompatActivity {
 
     private SharedPreferences prefs() {
         return getSharedPreferences(BlockedNotifier.PREFS, MODE_PRIVATE);
+    }
+
+    private int col(int colorRes) {
+        return ContextCompat.getColor(this, colorRes);
+    }
+
+    private void applyThemePref() {
+        AppCompatDelegate.setDefaultNightMode(prefs().getBoolean("light_theme", false)
+                ? AppCompatDelegate.MODE_NIGHT_NO
+                : AppCompatDelegate.MODE_NIGHT_YES);
     }
 
     // ---------- tabs ----------
@@ -225,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
         if (screen && logPerm) {
             tvBanner.setText("Protection active \u2014 " + lastSeriesCount
                     + (lastSeriesCount == 1 ? " series" : " series") + " blocked");
-            tvBanner.setTextColor(COLOR_SAFE);
+            tvBanner.setTextColor(col(R.color.safe_green));
             btn.setVisibility(View.GONE);
         } else {
             StringBuilder sb = new StringBuilder();
@@ -234,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
                     ? "Call screening is off \u2014 calls will not be blocked."
                     : "Phone state permission missing \u2014 calls will not be blocked.");
             tvBanner.setText(sb.toString().trim());
-            tvBanner.setTextColor(COLOR_WARN);
+            tvBanner.setTextColor(col(R.color.suspicious_yellow));
             btn.setVisibility(View.VISIBLE);
             btn.setText(!logPerm ? R.string.banner_grant : R.string.banner_enable);
         }
@@ -332,25 +342,44 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showAddSeriesDialog() {
+    private void showSeriesActions(Series s) {
+        new AlertDialog.Builder(this)
+                .setTitle("Series " + s.pattern)
+                .setItems(new String[]{getString(R.string.action_edit),
+                                getString(R.string.action_remove)},
+                        (d, w) -> {
+                            if (w == 0) showSeriesDialog(s);
+                            else confirmDelete(s);
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** Add (editTarget == null) or edit an existing series. */
+    private void showSeriesDialog(Series editTarget) {
         View v = LayoutInflater.from(this).inflate(R.layout.dialog_add_series, null);
         EditText et = v.findViewById(R.id.etPattern);
+        EditText etNote = v.findViewById(R.id.etNote);
         TextView tvStats = v.findViewById(R.id.tvStats);
+        if (editTarget != null) {
+            et.setText(editTarget.pattern);
+            etNote.setText(editTarget.note);
+        }
 
         Runnable update = () -> {
             String p = NumUtil.cleanPattern(et.getText().toString());
             if (p.length() < 3) {
                 tvStats.setText(R.string.add_hint);
-                tvStats.setTextColor(COLOR_MUTED);
+                tvStats.setTextColor(col(R.color.app_text_secondary));
                 return;
             }
             StringBuilder color = new StringBuilder("green");
             String verdict = SpamAdvisor.verdict(lastCalls, p, color);
             tvStats.setText(verdict);
             switch (color.toString()) {
-                case "red":    tvStats.setTextColor(COLOR_SPAM); break;
-                case "yellow": tvStats.setTextColor(COLOR_WARN); break;
-                default:       tvStats.setTextColor(COLOR_SAFE);
+                case "red":    tvStats.setTextColor(col(R.color.spam_red)); break;
+                case "yellow": tvStats.setTextColor(col(R.color.suspicious_yellow)); break;
+                default:       tvStats.setTextColor(col(R.color.safe_green));
             }
         };
         et.addTextChangedListener(new TextWatcher() {
@@ -359,19 +388,42 @@ public class MainActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.add_title)
+        AlertDialog.Builder b = new AlertDialog.Builder(this)
+                .setTitle(editTarget == null ? R.string.add_title : R.string.edit_title)
                 .setView(v)
-                .setPositiveButton(R.string.block, (d, w) -> {
-                    String p = NumUtil.cleanPattern(et.getText().toString());
-                    if (p.length() < 3 || p.length() > 13) {
-                        toast("Enter a prefix of 3-13 digits");
-                        return;
-                    }
-                    addPattern(p, "Added manually", "manual");
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .setNegativeButton(android.R.string.cancel, null);
+        if (editTarget == null) {
+            b.setPositiveButton(R.string.block, (d, w) -> {
+                String p = NumUtil.cleanPattern(et.getText().toString());
+                if (p.length() < 3 || p.length() > 13) {
+                    toast("Enter a prefix of 3-13 digits");
+                    return;
+                }
+                String note = etNote.getText().toString().trim();
+                addPattern(p, note.isEmpty() ? "Added manually" : note, "manual");
+            });
+        } else {
+            b.setPositiveButton(R.string.save, (d, w) -> {
+                String p = NumUtil.cleanPattern(et.getText().toString());
+                if (p.length() < 3 || p.length() > 13) {
+                    toast("Enter a prefix of 3-13 digits");
+                    return;
+                }
+                String note = etNote.getText().toString().trim();
+                exec.execute(() -> {
+                    final boolean ok = db.updateSeries(editTarget.id, p, note);
+                    ui.post(() -> {
+                        if (ok) {
+                            toast("Series updated");
+                            refreshAll();
+                        } else {
+                            toast("A series with this prefix already exists");
+                        }
+                    });
+                });
+            });
+        }
+        b.show();
         update.run();
     }
 
@@ -466,6 +518,10 @@ public class MainActivity extends AppCompatActivity {
                 .setChecked(prefs().getBoolean("notify_enabled", true));
         pm.getMenu().findItem(R.id.action_private)
                 .setChecked(prefs().getBoolean("block_private", false));
+        pm.getMenu().findItem(R.id.action_foreign)
+                .setChecked(prefs().getBoolean("block_foreign", false));
+        pm.getMenu().findItem(R.id.action_theme)
+                .setChecked(prefs().getBoolean("light_theme", false));
         pm.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.action_notify) {
@@ -479,6 +535,22 @@ public class MainActivity extends AppCompatActivity {
                 prefs().edit().putBoolean("block_private", now).apply();
                 item.setChecked(now);
                 toast(now ? "Private-number blocking on" : "Private-number blocking off");
+                return true;
+            } else if (id == R.id.action_foreign) {
+                boolean now = !prefs().getBoolean("block_foreign", false);
+                prefs().edit().putBoolean("block_foreign", now).apply();
+                item.setChecked(now);
+                toast(now ? "Foreign-number blocking on"
+                        : "Foreign-number blocking off");
+                return true;
+            } else if (id == R.id.action_theme) {
+                boolean now = !prefs().getBoolean("light_theme", false);
+                prefs().edit().putBoolean("light_theme", now).apply();
+                item.setChecked(now);
+                applyThemePref();
+                return true;
+            } else if (id == R.id.action_sync) {
+                runSpamSync();
                 return true;
             } else if (id == R.id.action_clear) {
                 new AlertDialog.Builder(this)
@@ -494,6 +566,22 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
         pm.show();
+    }
+
+    private void runSpamSync() {
+        toast("Updating spam database\u2026");
+        exec.execute(() -> {
+            final SpamDbSync.Result r = SpamDbSync.sync(this);
+            ui.post(() -> {
+                if (r.error != null) {
+                    toast("Spam DB update failed: " + r.error);
+                } else {
+                    toast("Spam DB updated: +" + r.added + " numbers ("
+                            + r.fetched + " in list)");
+                }
+                refreshAll();
+            });
+        });
     }
 
     private void toast(String msg) {
@@ -570,7 +658,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView tv = convertView instanceof TextView ? (TextView) convertView : null;
                 if (tv == null) {
                     tv = new TextView(MainActivity.this);
-                    tv.setTextColor(COLOR_MUTED);
+                    tv.setTextColor(col(R.color.app_text_secondary));
                     tv.setTextSize(13);
                     tv.setPadding(dp(16), dp(10), dp(16), dp(4));
                 }
@@ -589,15 +677,21 @@ public class MainActivity extends AppCompatActivity {
                 ((TextView) row.findViewById(R.id.tvReason)).setText(st.reason);
             } else {
                 CallLogEntry e = (CallLogEntry) rows.get(position);
-                ((TextView) row.findViewById(R.id.tvNumber)).setText(e.number);
-                String name = e.name.isEmpty() ? "" : e.name + " \u00b7 ";
-                ((TextView) row.findViewById(R.id.tvSub))
-                        .setText(name + fmtDateTime.format(new Date(e.date)));
+                TextView tvNumber = row.findViewById(R.id.tvNumber);
+                TextView tvSub = row.findViewById(R.id.tvSub);
+                // Contact name is the primary line when known; number moves to the sub line
+                if (!e.name.isEmpty()) {
+                    tvNumber.setText(e.name);
+                    tvSub.setText(e.number + " \u00b7 " + fmtDateTime.format(new Date(e.date)));
+                } else {
+                    tvNumber.setText(e.number);
+                    tvSub.setText(fmtDateTime.format(new Date(e.date)));
+                }
                 TextView tvType = row.findViewById(R.id.tvType);
                 tvType.setText(typeLabel(e.type));
                 int[] badge = typeBadge(e.type);
                 tvType.setBackgroundResource(badge[0]);
-                tvType.setTextColor(badge[1]);
+                tvType.setTextColor(col(badge[1]));
             }
             return row;
         }
@@ -614,11 +708,11 @@ public class MainActivity extends AppCompatActivity {
 
         private int[] typeBadge(int type) {
             switch (type) {
-                case CallLog.Calls.INCOMING_TYPE: return new int[]{R.drawable.bg_badge_safe, COLOR_SAFE};
-                case CallLog.Calls.MISSED_TYPE:   return new int[]{R.drawable.bg_badge_spam, COLOR_SPAM};
-                case CallLog.Calls.REJECTED_TYPE: return new int[]{R.drawable.bg_badge_spam, COLOR_SPAM};
-                case CallLog.Calls.BLOCKED_TYPE:  return new int[]{R.drawable.bg_badge_spam, COLOR_SPAM};
-                default:                          return new int[]{R.drawable.bg_badge_warn, COLOR_WARN};
+                case CallLog.Calls.INCOMING_TYPE: return new int[]{R.drawable.bg_badge_safe, R.color.safe_green};
+                case CallLog.Calls.MISSED_TYPE:   return new int[]{R.drawable.bg_badge_spam, R.color.spam_red};
+                case CallLog.Calls.REJECTED_TYPE: return new int[]{R.drawable.bg_badge_spam, R.color.spam_red};
+                case CallLog.Calls.BLOCKED_TYPE:  return new int[]{R.drawable.bg_badge_spam, R.color.spam_red};
+                default:                          return new int[]{R.drawable.bg_badge_warn, R.color.suspicious_yellow};
             }
         }
     }
@@ -643,8 +737,11 @@ public class MainActivity extends AppCompatActivity {
             BlockedCall b = getItem(position);
             ((TextView) row.findViewById(R.id.tvNumber)).setText(
                     b.number == null || b.number.isEmpty() ? "Private number" : b.number);
+            String when = fmtDateTime.format(new Date(b.ts));
             ((TextView) row.findViewById(R.id.tvDetail)).setText(
-                    "series " + b.pattern + " \u00b7 " + fmtDateTime.format(new Date(b.ts)));
+                    b.pattern == null || b.pattern.isEmpty()
+                            ? when
+                            : "series " + b.pattern + " \u00b7 " + when);
             return row;
         }
     }

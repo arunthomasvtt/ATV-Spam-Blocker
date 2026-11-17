@@ -21,8 +21,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp"
+        android:textColor="@color/app_text"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
         android:visibility="gone" />
 
     <TextView
@@ -30,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/reject_prompt"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/app_text_secondary"
         android:textSize="13sp" />
 
     <Spinner

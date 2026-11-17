@@ -1,19 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#0A0A0F</color>
-    <color name="surface_dark">#12121A</color>
-    <color name="surface_card">#1A1A26</color>
-    <color name="divider">#2A2A3D</color>
-    <color name="text_primary">#E8E8F0</color>
-    <color name="text_secondary">#6B6B8A</color>
+    <!-- Semantic palette: values/ = light mode, values-night/ = dark mode -->
+    <color name="app_bg">#F5F6F8</color>
+    <color name="app_surface">#FFFFFF</color>
+    <color name="app_card">#FFFFFF</color>
+    <color name="app_text">#17181D</color>
+    <color name="app_text_secondary">#666C77</color>
     <color name="white">#FFFFFF</color>
-    <color name="accent_red">#FF3B5C</color>
-    <color name="spam_red">#FF3B5C</color>
-    <color name="suspicious_yellow">#FFCC00</color>
-    <color name="safe_green">#00E5A0</color>
+    <color name="accent_red">#E02E4E</color>
+    <color name="spam_red">#E02E4E</color>
+    <color name="suspicious_yellow">#A66A00</color>
+    <color name="safe_green">#00875F</color>
     <color name="icon_blue">#0036A9</color>
 </resources>
-
-
-
-

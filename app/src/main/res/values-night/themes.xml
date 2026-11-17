@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CallShield" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/accent_red</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/safe_green</item>
+        <item name="android:colorBackground">@color/app_bg</item>
+        <item name="colorSurface">@color/app_card</item>
+        <item name="colorOnSurface">@color/app_text</item>
+        <item name="android:statusBarColor">@color/app_bg</item>
+        <item name="android:navigationBarColor">@color/app_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

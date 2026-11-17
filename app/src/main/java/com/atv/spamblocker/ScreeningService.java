@@ -11,9 +11,14 @@ import androidx.annotation.RequiresApi;
 @RequiresApi(Build.VERSION_CODES.Q)
 public class ScreeningService extends CallScreeningService {
 
+    /** TRAI transactional/service series — OTP and bank calls must always ring. */
+    private static final String[] TRUSTED_PREFIXES = {"1600", "1601"};
+
     @Override
     public void onScreenCall(Call.Details details) {
         boolean block = false;
+        boolean suspected = false;
+        String suspectReason = "";
         String display = "";
         String pattern = "";
 
@@ -21,22 +26,41 @@ public class ScreeningService extends CallScreeningService {
             if (details.getCallDirection() == Call.Details.DIRECTION_INCOMING) {
                 Uri handle = details.getHandle();
                 String raw = handle == null ? null : handle.getSchemeSpecificPart();
+                SharedPreferences p = getSharedPreferences(BlockedNotifier.PREFS, MODE_PRIVATE);
 
                 if (raw == null || raw.trim().isEmpty()) {
-                    SharedPreferences p = getSharedPreferences(BlockedNotifier.PREFS, MODE_PRIVATE);
                     if (p.getBoolean("block_private", false)) {
                         block = true;
-                        display = "";
-                        pattern = "";
                     }
                 } else {
                     display = raw;
                     String local = NumUtil.toLocal(raw);
                     String full = NumUtil.digits(raw);
+                    boolean trusted = isTrustedSeries(local);
+
                     Series m = new Db(this).findMatch(local, full);
-                    if (m != null) {
+                    if (m != null && !(trusted && "cloud".equals(m.source))) {
                         block = true;
                         pattern = m.pattern;
+                    }
+
+                    if (!block && !trusted
+                            && p.getBoolean("block_foreign", false)
+                            && isForeignNumber(full)) {
+                        block = true;
+                    }
+
+                    if (!block && !trusted
+                            && p.getBoolean("smart_screen", true)
+                            && !CallLogReader.isInContacts(this, raw)) {
+                        SpamAdvisor.Verdict v = SpamAdvisor.liveScore(this, local, full);
+                        if (v.score >= 3 && p.getBoolean("auto_block_suspect", false)) {
+                            block = true;
+                            pattern = v.prefix;
+                        } else if (v.score >= 2) {
+                            suspected = true;
+                            suspectReason = v.reason;
+                        }
                     }
                 }
             }
@@ -49,6 +73,8 @@ public class ScreeningService extends CallScreeningService {
                 Db db = new Db(this);
                 db.recordBlocked(display, pattern);
                 BlockedNotifier.notifyBlocked(this, display, pattern);
+            } else if (suspected) {
+                BlockedNotifier.notifySuspected(this, display, suspectReason);
             }
         } catch (Exception ignored) {
         }
@@ -59,5 +85,20 @@ public class ScreeningService extends CallScreeningService {
                 .setSkipCallLog(false)
                 .setSkipNotification(block)
                 .build());
+    }
+
+    private static boolean isTrustedSeries(String local) {
+        for (String t : TRUSTED_PREFIXES) {
+            if (local.startsWith(t)) return true;
+        }
+        return false;
+    }
+
+    /** Indian numbers appear as 10 digits, 0XXXXXXXXXX or +91XXXXXXXXXX; the rest is foreign. */
+    private static boolean isForeignNumber(String full) {
+        int n = full.length();
+        if (n == 10) return false;
+        if (n == 11 && full.startsWith("0")) return false;
+        return !(n == 12 && full.startsWith("91"));
     }
 }

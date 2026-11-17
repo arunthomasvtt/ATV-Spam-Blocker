@@ -77,17 +77,41 @@ public class Db extends SQLiteOpenHelper {
         getWritableDatabase().delete("series", "id=?", new String[]{String.valueOf(id)});
     }
 
-    /** Longest (most specific) matching pattern wins. */
-    public Series findMatch(String local, String full) {
+    /** @return false if another series already uses the new pattern. */
+    public boolean updateSeries(long id, String pattern, String note) {
+        SQLiteDatabase db = getWritableDatabase();
+        try (Cursor c = db.rawQuery("SELECT id FROM series WHERE pattern=? AND id<>?",
+                new String[]{pattern, String.valueOf(id)})) {
+            if (c.moveToFirst()) return false;
+        }
+        ContentValues cv = new ContentValues();
+        cv.put("pattern", pattern);
+        cv.put("note", note == null ? "" : note);
+        db.update("series", cv, "id=?", new String[]{String.valueOf(id)});
+        return true;
+    }
+
+    public int countBySource(String source) {
         try (Cursor c = getReadableDatabase().rawQuery(
-                "SELECT id, pattern, note, source, created_at, blocked_count FROM series" +
-                " ORDER BY LENGTH(pattern) DESC", null)) {
-            while (c.moveToNext()) {
-                String pattern = c.getString(1);
-                if (NumUtil.matches(pattern, local, full)) {
-                    return new Series(c.getLong(0), pattern, c.getString(2),
-                            c.getString(3), c.getLong(4), c.getInt(5));
-                }
+                "SELECT COUNT(*) FROM series WHERE source=?", new String[]{source})) {
+            return c.moveToFirst() ? c.getInt(0) : 0;
+        }
+    }
+
+    /**
+     * Longest (most specific) matching pattern wins. Prefix matching runs in SQL
+     * (LIKE pattern || '%') so large cloud lists stay cheap to screen against;
+     * patterns are digit-only, so LIKE has no wildcard pitfalls.
+     */
+    public Series findMatch(String local, String full) {
+        String sql = "SELECT id, pattern, note, source, created_at, blocked_count FROM series"
+                + " WHERE (LENGTH(pattern) <= 10 AND ? LIKE pattern || '%')"
+                + " OR (LENGTH(pattern) > 10 AND ? LIKE pattern || '%')"
+                + " ORDER BY LENGTH(pattern) DESC LIMIT 1";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{local, full})) {
+            if (c.moveToFirst()) {
+                return new Series(c.getLong(0), c.getString(1), c.getString(2),
+                        c.getString(3), c.getLong(4), c.getInt(5));
             }
         }
         return null;

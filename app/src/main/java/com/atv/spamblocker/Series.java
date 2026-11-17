@@ -22,6 +22,7 @@ public class Series {
             case "call_log":  return "From call log";
             case "suggested": return "Spam suggestion";
             case "builtin":   return "Built-in";
+            case "cloud":     return "Cloud spam list";
             default:          return "Added manually";
         }
     }

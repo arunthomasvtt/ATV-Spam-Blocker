@@ -16,12 +16,21 @@
         android:inputType="phone"
         android:singleLine="true" />
 
+    <EditText
+        android:id="@+id/etNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:hint="@string/note_hint"
+        android:inputType="text"
+        android:singleLine="true" />
+
     <TextView
         android:id="@+id/tvStats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="@string/add_hint"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/app_text_secondary"
         android:textSize="13sp" />
 </LinearLayout>

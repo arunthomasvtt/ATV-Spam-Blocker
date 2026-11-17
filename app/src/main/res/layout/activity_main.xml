@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/bg_dark">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,7 +29,7 @@
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:text="@string/app_name"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/app_text"
             android:textSize="22sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-medium" />
@@ -40,7 +40,7 @@
             android:layout_height="44dp"
             android:src="@drawable/ic_more"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="@color/text_secondary"
+            app:tint="@color/app_text_secondary"
             android:contentDescription="@string/menu_clear" />
     </LinearLayout>
 
@@ -51,7 +51,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="6dp"
-        app:cardBackgroundColor="@color/surface_card"
+        app:cardBackgroundColor="@color/app_card"
         app:cardCornerRadius="14dp"
         app:cardElevation="0dp">
 
@@ -114,7 +114,7 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="6dp"
                 android:text="@string/series_hint"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/app_text_secondary"
                 android:textSize="12sp" />
 
             <ListView
@@ -132,7 +132,7 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp"
                 android:text="@string/empty_series"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/app_text_secondary"
                 android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
@@ -162,7 +162,7 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp"
                 android:text="@string/empty_calls"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/app_text_secondary"
                 android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
@@ -182,7 +182,7 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="6dp"
                 android:text="@string/label_blocked_calls"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/app_text_secondary"
                 android:textSize="12sp" />
 
             <ListView
@@ -200,7 +200,7 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp"
                 android:text="@string/empty_blocked"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/app_text_secondary"
                 android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
@@ -210,7 +210,7 @@
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/surface_dark"
+        android:background="@color/app_surface"
         app:itemIconTint="@color/nav_item"
         app:itemTextColor="@color/nav_item"
         app:labelVisibilityMode="labeled"

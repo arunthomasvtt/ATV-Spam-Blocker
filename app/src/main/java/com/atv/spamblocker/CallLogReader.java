@@ -24,6 +24,14 @@ public final class CallLogReader {
 
     /** Incoming/missed/rejected/blocked calls of the last 30 days, newest first. */
     public static List<CallLogEntry> recentCalls(Context ctx, int maxEntries) {
+        return recentCalls(ctx, maxEntries, true);
+    }
+
+    /**
+     * With resolveContacts=false skips the per-number contact lookups — used by
+     * live spam scoring during an incoming call, where it must stay fast.
+     */
+    public static List<CallLogEntry> recentCalls(Context ctx, int maxEntries, boolean resolveContacts) {
         List<CallLogEntry> out = new ArrayList<>();
         if (!hasPermission(ctx)) return out;
         long since = System.currentTimeMillis() - 30L * 24 * 3600 * 1000;
@@ -57,12 +65,16 @@ public final class CallLogReader {
                 if (type == CallLog.Calls.OUTGOING_TYPE || type == CallLog.Calls.VOICEMAIL_TYPE) continue;
                 String name = iName >= 0 ? c.getString(iName) : null;
                 String key = NumUtil.digits(number);
-                Boolean contact = contactCache.get(key);
-                if (contact == null) {
-                    String lookup = iLookup >= 0 ? c.getString(iLookup) : null;
-                    contact = (lookup != null && !lookup.trim().isEmpty())
-                            || isInContacts(ctx, number);
-                    contactCache.put(key, contact);
+                boolean contact = false;
+                if (resolveContacts) {
+                    Boolean known = contactCache.get(key);
+                    if (known == null) {
+                        String lookup = iLookup >= 0 ? c.getString(iLookup) : null;
+                        known = (lookup != null && !lookup.trim().isEmpty())
+                                || isInContacts(ctx, number);
+                        contactCache.put(key, known);
+                    }
+                    contact = known;
                 }
                 out.add(new CallLogEntry(
                         number,
@@ -77,7 +89,7 @@ public final class CallLogReader {
         return out;
     }
 
-    private static boolean isInContacts(Context ctx, String number) {
+    public static boolean isInContacts(Context ctx, String number) {
         if (ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS)
                 != PackageManager.PERMISSION_GRANTED) return false;
         if (number == null || NumUtil.digits(number).length() < 4) return false;

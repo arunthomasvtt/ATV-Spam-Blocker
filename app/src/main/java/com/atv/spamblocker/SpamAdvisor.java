@@ -1,5 +1,6 @@
 package com.atv.spamblocker;
 
+import android.content.Context;
 import android.provider.CallLog;
 
 import java.util.ArrayList;
@@ -28,6 +29,13 @@ public final class SpamAdvisor {
         public SeriesStat(String prefix) {
             this.prefix = prefix;
         }
+    }
+
+    /** Verdict for a number that is ringing right now. */
+    public static class Verdict {
+        public int score;
+        public String prefix = "";
+        public String reason = "";
     }
 
     private SpamAdvisor() {}
@@ -136,5 +144,49 @@ public final class SpamAdvisor {
             sb.append(" \u2014 looks normal");
         }
         return sb.toString();
+    }
+
+    /**
+     * Live verdict for a number that is ringing now, from its 5-digit prefix's
+     * recent call history. Indian telemarketing pools show up as bursts: many
+     * distinct numbers in one prefix, mostly missed, short answered durations.
+     */
+    public static Verdict liveScore(Context ctx, String local, String full) {
+        Verdict v = new Verdict();
+        String base = local.isEmpty() ? full : local;
+        if (base.length() < PREFIX_LEN) return v;
+        v.prefix = base.substring(0, PREFIX_LEN);
+
+        int total = 0, missed = 0, answeredN = 0;
+        long durSum = 0;
+        Set<String> nums = new HashSet<>();
+        for (CallLogEntry e : CallLogReader.recentCalls(ctx, 300, false)) {
+            String l = NumUtil.toLocal(e.number);
+            String other = l.isEmpty() ? NumUtil.digits(e.number) : l;
+            if (!other.startsWith(v.prefix)) continue;
+            total++;
+            nums.add(other);
+            if (e.type == CallLog.Calls.MISSED_TYPE
+                    || e.type == CallLog.Calls.REJECTED_TYPE
+                    || e.type == CallLog.Calls.BLOCKED_TYPE) {
+                missed++;
+            } else {
+                durSum += e.duration;
+                answeredN++;
+            }
+        }
+        if (total == 0) return v;
+
+        double missedRatio = (double) missed / total;
+        double score = 0;
+        if (total >= 3 && nums.size() >= 2 && missedRatio >= 0.5) score += 3;
+        if (total >= 3 && nums.size() == 1 && missedRatio >= 0.5) score += 2;
+        if (total >= 3 && answeredN > 0 && durSum / answeredN < 15) score += 1;
+        if (total >= 6) score += 1;
+        v.score = (int) score;
+        v.reason = total + " recent calls \u00b7 " + nums.size()
+                + (nums.size() == 1 ? " number" : " numbers")
+                + " \u00b7 " + Math.round(missedRatio * 100) + "% missed";
+        return v;
     }
 }

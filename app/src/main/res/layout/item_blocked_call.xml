@@ -11,7 +11,7 @@
         android:id="@+id/tvNumber"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_primary"
+        android:textColor="@color/app_text"
         android:textSize="16sp"
         android:fontFamily="sans-serif-medium" />
 
@@ -20,6 +20,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/app_text_secondary"
         android:textSize="12sp" />
 </LinearLayout>
