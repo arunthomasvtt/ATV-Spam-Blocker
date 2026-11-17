@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="bg_dark">#0A0A0F</color>
     <color name="surface_dark">#12121A</color>
@@ -11,4 +11,9 @@
     <color name="spam_red">#FF3B5C</color>
     <color name="suspicious_yellow">#FFCC00</color>
     <color name="safe_green">#00E5A0</color>
+    <color name="icon_blue">#0036A9</color>
 </resources>
+
+
+
+
