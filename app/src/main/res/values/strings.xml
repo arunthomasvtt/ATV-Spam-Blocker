@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ATV Spam Blocker</string>
+    <string name="tab_shield">Shield</string>
+    <string name="tab_calls">Calls</string>
+    <string name="tab_log">Blocked</string>
+    <string name="banner_grant">Grant permissions</string>
+    <string name="banner_enable">Enable screening</string>
+    <string name="add_title">Add series</string>
+    <string name="add_hint">Enter at least 3 digits, e.g. 74168. Any number starting with this prefix will be rejected. Start typing to see a spam verdict from your call log.</string>
+    <string name="block">Block</string>
+    <string name="block_dialog_title">Block number or series</string>
+    <string name="reject_prompt">What should be rejected?</string>
+    <string name="calls_need_permission">Grant call log permission to see received calls and spam suggestions.</string>
+    <string name="menu_notify">Notify on blocked call</string>
+    <string name="menu_private">Block private (hidden) numbers</string>
+    <string name="menu_clear">Clear blocked-call log</string>
+    <string name="series_hint">Long-press a series to remove it</string>
+    <string name="btn_add">+ Add series</string>
+    <string name="empty_series">No series blocked yet. Tap + Add series, or open the Calls tab and tap a call to block its series.</string>
+    <string name="empty_calls">No recent calls found.</string>
+    <string name="empty_blocked">No calls have been blocked yet.</string>
+    <string name="label_blocked_calls">Blocked calls</string>
+</resources>
